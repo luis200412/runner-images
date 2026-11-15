@@ -18,11 +18,12 @@ jobs:
       env:
         RELEASE_BRANCH_NAME: ${{ github.event.client_payload.ReleaseBranchName }}
       run: |
-        git check-ref-format "refs/heads/$RELEASE_BRANCH_NAME"
-        git check-ref-format --branch "$RELEASE_BRANCH_NAME-docs"
-        git checkout "$RELEASE_BRANCH_NAME" --
-        git branch -- "$RELEASE_BRANCH_NAME-docs"
-        git push --force origin "refs/heads/$RELEASE_BRANCH_NAME-docs:refs/heads/$RELEASE_BRANCH_NAME-docs"
+        git check-ref-format --branch "$RELEASE_BRANCH_NAME"
+        docs_branch="${RELEASE_BRANCH_NAME}-docs"
+        git check-ref-format --branch "$docs_branch"
+        git switch -- "$RELEASE_BRANCH_NAME"
+        git branch -- "$docs_branch"
+        git push --force-with-lease origin "refs/heads/$docs_branch:refs/heads/$docs_branch"
 
     - name: Create pull request for ${{ github.event.client_payload.ReleaseBranchName }}
       id: create-pr
@@ -60,7 +61,7 @@ jobs:
       with:
         github-token: ${{secrets.PRAPPROVAL_SECRET}}
         script: |
-          github.rest.pulls.requestReviewers({
+          await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: ${{ steps.create-pr.outputs.result }},
